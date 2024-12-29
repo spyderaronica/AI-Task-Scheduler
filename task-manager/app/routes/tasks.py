@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app import crud, schemas, models
 from app.database import get_db
+from app.notifications import publish_reminder
 
 router = APIRouter()
 
@@ -18,13 +19,18 @@ def read_task(task_id: int, db: Session = Depends(get_db)):
 
 @router.post("/tasks/", response_model=schemas.Task)
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
-    return crud.create_task(db, task)
+    new_task = crud.create_task(db, task)
+    if new_task.reminder_at:
+        publish_reminder(new_task.id, new_task.reminder_at.isoformat())
+    return new_task
 
 @router.put("/tasks/{task_id}", response_model=schemas.Task)
 def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(get_db)):
     updated_task = crud.update_task(db, task_id, task)
     if not updated_task:
         raise HTTPException(status_code=404, detail="Task not found")
+    if updated_task.reminder_at:
+        publish_reminder(updated_task.id, updated_task.reminder_at.isoformat())
     return updated_task
 
 @router.delete("/tasks/{task_id}", response_model=schemas.Task)
@@ -33,3 +39,11 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     if not deleted_task:
         raise HTTPException(status_code=404, detail="Task not found")
     return deleted_task
+
+@router.post("/tasks/{task_id}/reminder", response_model=schemas.Task)
+def set_reminder(task_id: int, reminder_at: datetime, db: Session = Depends(get_db)):
+    task = crud.set_task_reminder(db, task_id, reminder_at)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+

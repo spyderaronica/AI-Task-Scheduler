@@ -12,3 +12,4 @@ class Task(Base):
     is_complete = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    reminder_at = Column(DateTime, nullable=True)  # New column for reminders

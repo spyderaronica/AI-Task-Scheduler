@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
+from datetime import datetime
+
 
 def get_tasks(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.Task).offset(skip).limit(limit).all()
@@ -30,3 +32,13 @@ def delete_task(db: Session, task_id: int):
         db.delete(db_task)
         db.commit()
     return db_task
+
+def set_task_reminder(db: Session, task_id: int, reminder_at: datetime):
+    task = get_task(db, task_id)
+    if not task:
+        return None
+    task.reminder_at = reminder_at
+    db.commit()
+    db.refresh(task)
+    return task
+
