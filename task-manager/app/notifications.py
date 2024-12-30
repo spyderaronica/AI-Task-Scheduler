@@ -1,5 +1,3 @@
-# app/notifications.py
-
 from datetime import datetime
 from google.cloud import pubsub_v1
 
