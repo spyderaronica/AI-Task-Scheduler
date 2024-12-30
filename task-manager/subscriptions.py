@@ -1,7 +1,7 @@
 from google.cloud import pubsub_v1
 import json
 
-SUBSCRIPTION_NAME = "projects/YOUR_PROJECT_ID/subscriptions/YOUR_SUBSCRIPTION_NAME"
+SUBSCRIPTION_NAME = "projects/taskscheduler-443220/subscriptions/task-reminders-sub"
 
 def callback(message):
     data = json.loads(message.data)
@@ -12,7 +12,7 @@ def callback(message):
 subscriber = pubsub_v1.SubscriberClient()
 future = subscriber.subscribe(SUBSCRIPTION_NAME, callback=callback)
 
-print(f"Listening for messages on {SUBSCRIPTION_NAME}...")
+print(f"Listening for messages on task-reminders-sub...")
 try:
     future.result()
 except KeyboardInterrupt:
