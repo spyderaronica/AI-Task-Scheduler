@@ -1,50 +1,29 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app import crud, schemas, models
-from app.database import get_db
-from app.notifications import publish_reminder
-from datetime import datetime
+from pydantic import BaseModel
+from fastapi import APIRouter
+from app.ai_model import predict_task_priority  # Ensure correct import for the prediction logic
 
 router = APIRouter()
 
-@router.get("/tasks/", response_model=list[schemas.Task])
-def read_tasks(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return crud.get_tasks(db, skip=skip, limit=limit)
+# Task CRUD routes
+@router.post("/tasks")
+async def create_task(description: str, due_date: str = None):
+    """
+    Create a new task.
+    """
+    # Your logic for creating a task
+    return {"message": "Task created successfully", "description": description, "due_date": due_date}
 
-@router.get("/tasks/{task_id}", response_model=schemas.Task)
-def read_task(task_id: int, db: Session = Depends(get_db)):
-    task = crud.get_task(db, task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return task
 
-@router.post("/tasks/", response_model=schemas.Task)
-def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
-    new_task = crud.create_task(db, task)
-    if new_task.reminder_at:
-        publish_reminder(new_task.id, new_task.reminder_at.isoformat())
-    return new_task
+# Define a Pydantic model for the input
+class TaskRequest(BaseModel):
+    description: str
 
-@router.put("/tasks/{task_id}", response_model=schemas.Task)
-def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(get_db)):
-    updated_task = crud.update_task(db, task_id, task)
-    if not updated_task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    if updated_task.reminder_at:
-        publish_reminder(updated_task.id, updated_task.reminder_at.isoformat())
-    return updated_task
-
-@router.delete("/tasks/{task_id}", response_model=schemas.Task)
-def delete_task(task_id: int, db: Session = Depends(get_db)):
-    deleted_task = crud.delete_task(db, task_id)
-    if not deleted_task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return deleted_task
-
-@router.post("/tasks/{task_id}/reminder", response_model=schemas.Task)
-def set_reminder(task_id: int, reminder_at: datetime, db: Session = Depends(get_db)):
-    task = crud.set_task_reminder(db, task_id, reminder_at)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return task
+@router.post("/task-priority")
+async def get_task_priority(request: TaskRequest):
+    """
+    Predict the priority of a task based on its description.
+    """
+    description = request.description  # Extract the description from the request
+    priority = predict_task_priority(description)
+    return {"priority": priority}
 
